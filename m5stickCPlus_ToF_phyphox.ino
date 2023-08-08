@@ -42,7 +42,7 @@ void setup() {
 
   // LCDの初期設定
   M5.Lcd.fillScreen(BLACK);
-  M5.Lcd.setRotation(3);                 
+  M5.Lcd.setRotation(3);
   Serial.begin(115200);                  // シリアル通信の開始
   Serial.println("VLX53LOX  started.");  // 開始のメッセージをシリアル出力
 
@@ -123,6 +123,10 @@ void loop() {
   lastTime = currentTime;
 
   // Phyphoxに計測結果を送信
+  //距離をcmに直す
+  filteredDist = filteredDist / 10;
+  speed = speed / 10;
+
   PhyphoxBLE::write(filteredDist, speed);
 
   // 距離をシリアル出力

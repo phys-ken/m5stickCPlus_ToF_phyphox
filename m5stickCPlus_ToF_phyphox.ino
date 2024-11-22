@@ -1,16 +1,8 @@
-// 2023年8月7日 08:36 完成版のメモ
-
 // 必要なライブラリをインクルード
 #include <M5StickCPlus.h>
 #include <Wire.h>
 #include <VL53L0X.h>
 #include <phyphoxBle.h>
-
-// LEDC（LED制御）の設定パラメータ
-#define LEDC_CHANNEL 1
-#define LEDC_FREQUENCY 5000
-#define LEDC_RESOLUTION 8
-#define LEDC_PIN 26
 
 // VL53L0Xセンサのインスタンスを生成
 VL53L0X sensor;
@@ -33,12 +25,17 @@ unsigned long lastTime = 0;
 // センサの名前を保持するための変数
 const char* sensorName = "phys_ken_001";
 
+// 内蔵LEDの状態を記録する変数。trueのときLEDは消灯状態、falseのとき点灯状態を表す。
+bool ledState = true;
+
+// ボタンが押されたときのタイムスタンプ（ミリ秒単位）を記録する変数
+unsigned long startTime = 0;
+
 void setup() {
   M5.begin();  // M5StickCを初期化
 
-  // LEDCの初期設定とピンの割り当て
-  ledcSetup(LEDC_CHANNEL, LEDC_FREQUENCY, LEDC_RESOLUTION);
-  ledcAttachPin(LEDC_PIN, LEDC_CHANNEL);
+  pinMode(10, OUTPUT);    // 内蔵LEDが接続されているGPIO10ピンを出力モードに設定
+  digitalWrite(10, HIGH); // 内蔵LEDを初期状態で消灯する（HIGHで消灯）
 
   // LCDの初期設定
   M5.Lcd.fillScreen(BLACK);
@@ -69,7 +66,7 @@ void setup() {
   PhyphoxBleExperiment::Graph graph;
   graph.setLabel("x-tグラフ");
   graph.setUnitX("s");
-  graph.setUnitY("cm");
+  graph.setUnitY("m");
   graph.setLabelX("時刻");
   graph.setLabelY("距離");
   graph.setChannel(0, 1);
@@ -78,7 +75,7 @@ void setup() {
   PhyphoxBleExperiment::Graph speedGraph;
   speedGraph.setLabel("v-tグラフ");
   speedGraph.setUnitX("s");
-  speedGraph.setUnitY("cm/s");
+  speedGraph.setUnitY("m/s");
   speedGraph.setLabelX("時刻");
   speedGraph.setLabelY("速度");
   speedGraph.setChannel(0, 2);
@@ -96,6 +93,22 @@ void setup() {
 }
 
 void loop() {
+  M5.update(); // ボタンの状態を更新
+
+  // ボタンAが押された場合
+  if (M5.BtnA.wasPressed()) {
+    ledState = !ledState; // LEDの状態をトグル
+    if (!ledState) {
+      startTime = millis();   // ボタンを押した時刻を記録
+      digitalWrite(10, LOW);  // LEDを点灯（LOWで点灯）
+      Serial.println("<---!!start!!--->"); // シリアル通信に開始メッセージを送信
+      Serial.println("---sec , m---");     // 見出し行を表示
+    } else {
+      digitalWrite(10, HIGH); // LEDを消灯（HIGHで消灯）
+      Serial.println("<---!!stop!!--->");  // シリアル通信に停止メッセージを送信
+    }
+  }
+
   int distance = sensor.readRangeSingleMillimeters();  // センサから距離を読み取る
 
   // 無効な距離のエラーチェック
@@ -116,21 +129,18 @@ void loop() {
   // 経過時間の計算
   unsigned long currentTime = millis();
   float deltaTime = (currentTime - lastTime) / 1000.0;
+  lastTime = currentTime;  // lastTimeの更新をここに移動
 
   // 速度を計算
   float speed = (filteredDist - lastDist) / deltaTime;
   lastDist = filteredDist;
-  lastTime = currentTime;
+
+  // 距離と速度をメートルに変換
+  filteredDist = filteredDist / 1000.0;
+  speed = speed / 1000.0;
 
   // Phyphoxに計測結果を送信
-  //距離をcmに直す
-  filteredDist = filteredDist / 10;
-  speed = speed / 10;
-
   PhyphoxBLE::write(filteredDist, speed);
-
-  // 距離をシリアル出力
-  Serial.println(filteredDist);
 
   // LCDに計測結果を表示
   sprite.fillRect(0, 0, sprite.width(), sprite.height(), BLACK);
@@ -142,10 +152,21 @@ void loop() {
   sprite.setCursor(0, 40);
   sprite.setTextSize(2);
   sprite.setTextColor(TFT_WHITE);
-  sprite.printf("x = %.2f cm\n", filteredDist);  // 距離
-  sprite.printf("v = %.2f cm/s\n", speed);       // 速度
+  sprite.printf("x = %.3f m\n", filteredDist);  // 距離
+  sprite.printf("v = %.3f m/s\n", speed);       // 速度
 
   // スプライトを実際のLCDに描画
   sprite.pushSprite(0, 0);
+
+  // LEDが点灯している場合のみシリアル送信を行う
+  if (!ledState) {
+    // ボタンを押してからの経過時間を秒単位で計算
+    float timeDifference = (currentTime - startTime) / 1000.0;
+    // シリアル送信（時間と距離をカンマ区切りで表示、単位は省略）
+    Serial.print(timeDifference, 3);   // 経過時間（秒）、小数点以下3桁まで表示
+    Serial.print(",");                 // カンマ区切り
+    Serial.println(filteredDist, 3);   // 距離（メートル）、小数点以下3桁まで表示
+  }
+
   delay(10);  // 10ms待機
 }

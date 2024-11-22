@@ -32,3 +32,26 @@
 
 
 [![](https://img.youtube.com/vi/RDGyMiHUAPI/0.jpg)](https://www.youtube.com/watch?v=RDGyMiHUAPI)
+
+
+
+
+##  使用ライブラリ一覧
+
+1. **staacks/phyphox-BLE@^1.2.3**
+   - **概要**: Phyphox（物理実験を支援するアプリ）のBLE通信をサポートするライブラリ。
+   - **用途**: Phyphoxアプリを通じてセンサーデータを取得し、BLE（Bluetooth Low Energy）でデバイスと通信するために使用。
+   - **バージョン**: ^1.2.3
+
+2. **m5stack/M5StickCPlus@^0.1.0**
+   - **概要**: M5StackのM5StickC Plusデバイスを操作するための公式ライブラリ。
+   - **用途**: ディスプレイ描画や内蔵センサー（ボタン、IMUなど）の制御を行うために使用。
+   - **バージョン**: ^0.1.0
+
+3. **pololu/VL53L0X@^1.3.1**
+   - **概要**: STMicroelectronics製のVL53L0X ToF（Time of Flight）距離センサー用のライブラリ。
+   - **用途**: 距離計測や障害物検出などの機能を実装するために使用。
+   - **バージョン**: ^1.3.1
+
+## Visual Studio Codeのplatform io拡張機能で書き込む方法
+[参考サイト](https://stprec.co.jp/products/m5stickcplus-%E3%81%A7-hello-world/)
